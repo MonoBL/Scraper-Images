@@ -32,4 +32,4 @@ if not os.path.exists(folder_name):
 driver = webdriver.Chorome()
 wait = WebDriverWait(driver, 15)#define 15s para a pagina carregar toda
 
-print("google paga open")
+print("google page open")
