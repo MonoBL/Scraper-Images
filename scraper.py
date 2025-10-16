@@ -14,3 +14,7 @@ nmr_pagina= 3
 #Nome da pasta onde salvar
 folder_name= "scraper_download"
 
+#cria pasta para donwload usar o OS para criar e prcourar paasta
+if not os.path.exists(folder_name):
+    os.mkdir(folder_name)
+    print(f"Pasta {folder_name} criada")
