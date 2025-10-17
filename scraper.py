@@ -5,6 +5,7 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.chrome.options import Options
+from selenium.common.exceptions import TimeoutException
 
 #Url fornecido pelo o User
 base_url="https://www.vecteezy.com/free-photos/light-leaks?license-free=true"
@@ -27,11 +28,12 @@ prefs={
     "download.default_directory": folder_name, #usar a folder como default
     "download.prompt_for_download":True, #evita a pergunta onde fazer download
     "directory_upgrade":True, #permite download para directorio diretamente
-    "safebrowsing.enabled":True #mantem seguro
+    "safebrowsing.enabled":True, #mantem seguro
+    "profile.default_content_setting_values.cookies": 1
 }
 
 chorome_option.add_experimental_option("prefs",prefs)
-
+chorome_option.add_argument("--start-maximized")
 #headless mode
 #chorome_option.add_argument("--headless")
 
@@ -45,6 +47,28 @@ driver = webdriver.Chrome(options=chorome_option)
 wait = WebDriverWait(driver, 15)#define 15s para a pagina carregar toda
 
 print("google page open")
+
+
+#aceitar cookies, usar o try como so é preciso aceitar uma vez, se o botao nao aparecer o codigo continua
+try:
+    print("accepting coockies")
+    driver.get(main_domain)
+
+    time.sleep(2)
+
+    #esperar o botao de aceitar aparecer
+    botao_coockies=wait.until(EC.presence_of_element_located((By.CSS_SELECTOR, 'button.message-component-button[title="Accept"]')))
+
+    #click em JS
+    driver.execute_script("arguments[0].click();", botao_coockies)
+
+
+    print("coocckies accept")
+    time.sleep(2)
+except TimeoutException:
+    print("popup nao apareceu")
+except Exception as e:
+    print("no pop-up of coockies maybe already accepted")
 
 #salvar o link the todos os assets 
 link_assets=[]
@@ -87,18 +111,20 @@ print(f"\nFind {len(link_assets)} link assets for donwload.")
 print("\n---starting downaloads---")
 
 #loop para fazer o click e download em cada um dos link gerados anterioremente
-for i, link in enumerate(link_assets):
+for i, link_assets in enumerate(link_assets):
     print(f"Processing asset links {i+1}/{len(link_assets)}: {link_assets}")
 
     try:
         #1 ir para a pagina do asset
-        driver.get(link)
+        driver.get(link_assets)
 
-        #2 esperar que o bottao de download de load
-        download_button=wait.until(EC.element_to_be_clickable((By.ID, "download-button")))
-
-        #3 clicar no botao
-        download_button.click()
+        botao_donw=wait.until(EC.presence_of_element_located((By.CSS_SELECTOR, "button.ez-btn--primary[data-download-target='mainButton']")))
+        
+        driver.execute_script("arguments[0].scrollIntoView(true);", botao_donw)
+        time.sleep(1)
+        #usar click via javascript para evitar crash
+        driver.execute_script("arguments[0].click();", botao_donw)
+        
 
         #esperar ecra de contagem e clicar em algum botão se necessarion
         try:
