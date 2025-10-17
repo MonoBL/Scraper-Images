@@ -65,21 +65,24 @@ for page_num in range(1, nmr_pagina +1):
         time.sleep(2)#pausa para garantir que tudo abriu 
 
         #encontrar os elementos que contem o link 
-        # selector "li.ez-resource-grid__item a" vai procurar as tag dentro das tags li com a class ez-resource-grid__item
-        link_element= driver.find_elements(By.CSS_SELECTOR, "li.ez-resource-grid__item a")
+        #usar a class exata onde esta o link
+        link_element= driver.find_elements(By.CSS_SELECTOR, "a.ez-resource-thumb__link")
+        print(f"Encontrados {len(link_element)} links de assets nesta pagina")
 
         #para cada elemento encontrado vamos contruir o url completo, isto ira criar os url estao vai estar os botoes de downlaod 
         for elemento in link_element:
             link_relativo= elemento.get_attribute('href')
 
             #verifacar se contem link
-            if link_relativo:
+            if link_relativo and link_relativo.startswith('/'):
                 #juntar o dominio mais o link para o link completo
                 link_final=f"{main_domain}{link_relativo}"
 
                 #adiconar ao dicionario apenas se nao estiver 
                 if link_final not in link_assets:
                     link_assets.append(link_final)
+            else:
+                print(f"link ignorado: {link_relativo}")
 
     except Exception as e:
         print(f"Err procecing page num {page_num} err = {e}")
