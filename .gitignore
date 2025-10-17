@@ -10,3 +10,7 @@ __pycache__/
 
 # Ignorar pasta de downloads do nosso scraper
 vecteezy_downloads/
+# Ficheiros do WebDriver
+chromedriver
+chromedriver.exe
+Google Chrome for Testing.app/
