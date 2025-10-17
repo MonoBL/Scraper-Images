@@ -71,18 +71,13 @@ for page_num in range(1, nmr_pagina +1):
 
         #para cada elemento encontrado vamos contruir o url completo, isto ira criar os url estao vai estar os botoes de downlaod 
         for elemento in link_element:
-            link_relativo= elemento.get_attribute('href')
-
-            #verifacar se contem link
-            if link_relativo and link_relativo.startswith('/'):
-                #juntar o dominio mais o link para o link completo
-                link_final=f"{main_domain}{link_relativo}"
-
-                #adiconar ao dicionario apenas se nao estiver 
+            link_final=elemento.get_attribute('href')
+            
+            if link_final and "vecteezy.com/" in link_final:
                 if link_final not in link_assets:
                     link_assets.append(link_final)
             else:
-                print(f"link ignorado: {link_relativo}")
+                print(f"Link ignorado: {link_final}")
 
     except Exception as e:
         print(f"Err procecing page num {page_num} err = {e}")
