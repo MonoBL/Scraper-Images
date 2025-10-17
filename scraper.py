@@ -1,9 +1,10 @@
 import os 
 import time
+from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
-import requests
+from selenium.webdriver.chrome.options import Options
 
 #Url fornecido pelo o User
 base_url="https://www.vecteezy.com/free-photos/light-leaks?license-free=true"
@@ -12,24 +13,35 @@ base_url="https://www.vecteezy.com/free-photos/light-leaks?license-free=true"
 nmr_pagina= 3
 
 #Nome da pasta onde salvar
-folder_name= "scraper_download"
+folder_name= os.path.join(os.getcwd(), "vecteezy_downloads")
 
 #main domain
 main_domain="https://www.vecteezy.com"
+
+
+
+#cria um objeto para as prefs que queremos 
+chorome_option= Options()
+#defenilas 
+prefs={
+    "download.default_directory": folder_name, #usar a folder como default
+    "download.prompt_for_download":True, #evita a pergunta onde fazer download
+    "directory_upgrade":True, #permite download para directorio diretamente
+    "safebrowsing.enabled":True #mantem seguro
+}
+
+chorome_option.add_experimental_option("prefs",prefs)
+
+#headless mode
+#chorome_option.add_argument("--headless")
 
 #cria pasta para donwload usar o OS para criar e prcourar paasta
 if not os.path.exists(folder_name):
     os.mkdir(folder_name)
     print(f"Folder {folder_name} created")
 
-
-#modo headless sem abrir pagina google descomentar 
-#options = webdriver.ChoromeOptions()
-#options.add_argument("--headless")
-#driver =webdriver.Chorome(options=options)
-
 #start selenium drivers para abrir uma pagina no chorome
-driver = webdriver.Chorome()
+driver = webdriver.Chrome(options=chorome_option)
 wait = WebDriverWait(driver, 15)#define 15s para a pagina carregar toda
 
 print("google page open")
@@ -73,3 +85,41 @@ for page_num in range(1, nmr_pagina +1):
         print(f"Err procecing page num {page_num} err = {e}")
     
 print(f"\nFind {len(link_assets)} link assets for donwload.")
+
+print("\n---starting downaloads---")
+
+#loop para fazer o click e download em cada um dos link gerados anterioremente
+for i, link in enumerate(link_assets):
+    print(f"Processing asset links {i+1}/{len(link_assets)}: {link_assets}")
+
+    try:
+        #1 ir para a pagina do asset
+        driver.get(link)
+
+        #2 esperar que o bottao de download de load
+        download_button=wait.until(EC.element_to_be_clickable((By.ID, "download-button")))
+
+        #3 clicar no botao
+        download_button.click()
+
+        #esperar ecra de contagem e clicar em algum botão se necessarion
+        try:
+            link_download_final=wait.until(EC.presence_of_all_elements_located((By.XPATH, "//a[contains(@class, 'download-button')]")))
+            link_download_final.click()
+            print("Final button clicked")
+        except:
+            #if nao tiver nenhum botao esperar o download
+            print("No button download started")
+
+        print("Awating download")
+        time.sleep(10) #esperar 10s
+
+        print(f"Download fininsh for folder '{folder_name}'")
+    except Exception as e:
+        print(f"Err processing {link_assets} skiping, err: {e}")
+
+    time.sleep(4) #espera 4s entre downloads 
+
+driver.quit()
+print("\nfinish")
+
