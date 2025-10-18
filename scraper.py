@@ -47,9 +47,9 @@ def run_scraper(base_url, nmr_pagina):
     }
 
     chorome_option.add_experimental_option("prefs",prefs)
+    chorome_option.add_argument("--no-sandbox")
+    chorome_option.add_argument("--disable-dev-shm-usage")
     chorome_option.add_argument("--start-maximized")
-    #headless mode
-    #chorome_option.add_argument("--headless")
 
     #cria pasta para donwload usar o OS para criar e prcourar paasta
     
