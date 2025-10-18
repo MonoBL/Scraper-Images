@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Vecteezy Scraper</title>
+    <style>
+        /* Importar uma fonte moderna (opcional, mas recomendado) */
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&display=swap');
+
+        /* Reset Básico e Estilos Globais */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: #111827; /* Cor de fundo escura, inspirada nos exemplos */
+            color: #F9FAFB; /* Cor de texto principal (branco suave) */
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            padding: 2rem;
+        }
+
+        /* O Cartão Principal que contém o formulário */
+        .scraper-container {
+            background-color: #1F2937; /* Cor do cartão, um pouco mais clara que o fundo */
+            padding: 2.5rem;
+            border-radius: 16px; /* Cantos arredondados */
+            border: 1px solid #374151;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
+            width: 100%;
+            max-width: 500px;
+        }
+
+        /* Título */
+        .title {
+            text-align: center;
+            font-size: 2rem;
+            font-weight: 700;
+            margin-bottom: 2rem;
+        }
+
+        /* Grupo de Formulário (Label + Input) */
+        .form-group {
+            margin-bottom: 1.5rem;
+        }
+
+        label {
+            display: block;
+            font-size: 0.9rem;
+            font-weight: 500;
+            margin-bottom: 0.5rem;
+            color: #9CA3AF; /* Cor mais suave para as labels */
+        }
+
+        /* Estilo dos campos de input */
+        input[type="text"],
+        input[type="number"] {
+            width: 100%;
+            padding: 0.8rem 1rem;
+            background-color: #374151; /* Fundo do input */
+            border: 1px solid #4B5563;
+            border-radius: 8px;
+            color: #F9FAFB;
+            font-size: 1rem;
+            transition: border-color 0.2s, box-shadow 0.2s;
+        }
+
+        /* Efeito ao focar no campo (clicar para escrever) */
+        input[type="text"]:focus,
+        input[type="number"]:focus {
+            outline: none;
+            border-color: #3B82F6; /* Cor de destaque azul */
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.4);
+        }
+
+        /* Estilo do Botão Principal */
+        .submit-btn {
+            width: 100%;
+            padding: 0.9rem 1rem;
+            background-color: #3B82F6; /* Cor de destaque azul, como nos exemplos */
+            color: #FFFFFF;
+            font-size: 1rem;
+            font-weight: 700;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+
+        /* Efeito ao passar o rato por cima do botão */
+        .submit-btn:hover {
+            background-color: #2563EB; /* Um azul um pouco mais escuro */
+        }
+    </style>
+</head>
+<body>
+
+    <div class="scraper-container">
+        <h1 class="title">Image Scraper</h1>
+        <form action="/scrape" method="post">
+            
+            <div class="form-group">
+                <label for="base_url">Base URL</label>
+                <input type="text" id="base_url" name="base_url" placeholder="https://www.vecteezy.com/..." required>
+            </div>
+            
+            <div class="form-group">
+                <label for="nmr_pagina">Number of pages to scan</label>
+                <input type="number" id="nmr_pagina" name="nmr_pagina" min="1" value="1" required>
+            </div>
+            
+            <button type="submit" class="submit-btn">Start Scraper & Download</button>
+
+        </form>
+    </div>
+
+</body>
+</html>
