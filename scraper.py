@@ -24,7 +24,7 @@ def run_scraper(base_url, nmr_pagina):
 
     # --- definir aqui quantos assets queremos recolher para teste
     # defina um inteiro (ex: 3) para testar só os primeiros N assets, ou None para todos
-    max_asset = 3
+    max_asset = 2
 
     
 
@@ -63,7 +63,7 @@ def run_scraper(base_url, nmr_pagina):
     try:
         #start selenium drivers para abrir uma pagina no chorome
         driver = webdriver.Chrome(options=chrome_options)
-        wait = WebDriverWait(driver, 15)#define 15s para a pagina carregar toda
+        wait = WebDriverWait(driver, 45)#define 15s para a pagina carregar toda
 
         print("google page open on headless")
 
@@ -272,7 +272,7 @@ def run_scraper(base_url, nmr_pagina):
                             print(f"Encontradas {len(size_buttons)} opções de tamanho, clicando na primeira...")
                             try:
                                 driver.execute_script("arguments[0].scrollIntoView(true); arguments[0].click();", size_buttons[0])
-                                time.sleep(1)
+                                time.sleep(3)
                             except Exception as e:
                                 print(f"Falha ao clicar na opção de tamanho: {e}")
                     except Exception:
