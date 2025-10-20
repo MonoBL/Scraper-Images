@@ -5,6 +5,7 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.chrome.options import Options
+from selenium.webdriver.chrome.service import Service
 from selenium.common.exceptions import TimeoutException
 import shutil
 
@@ -35,7 +36,7 @@ def run_scraper(base_url, nmr_pagina):
     print(f"Folder {download_path} created")
 
     #cria um objeto para as prefs que queremos 
-    chorome_option= Options()
+    chrome_options= Options()
     #defenilas 
     prefs={
         "download.default_directory": download_path, #usar a folder como default
@@ -46,21 +47,25 @@ def run_scraper(base_url, nmr_pagina):
         "profile.default_content_setting_values.cookies": 1 #aceita cookies mesmo que o o pop up contiue a aparecer
     }
 
-    chorome_option.add_experimental_option("prefs",prefs)
-    chorome_option.add_argument("--no-sandbox")
-    chorome_option.add_argument("--disable-dev-shm-usage")
-    chorome_option.add_argument("--start-maximized")
+    chrome_options.add_experimental_option("prefs",prefs)
+    chrome_options.add_argument("--headless=new")
+    chrome_options.add_argument("--no-sandbox")
+    chrome_options.add_argument("--disable-gpu")
+    chrome_options.add_argument("--window-size=1920,1080")
+    chrome_options.add_argument("--disable-blink-features=AutomationControlled")
+    chrome_options.add_argument("--user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36")  # ← NOVO: User agent
+
 
     #cria pasta para donwload usar o OS para criar e prcourar paasta
     
-    
+    driver = None #start diver como None 
 
     try:
         #start selenium drivers para abrir uma pagina no chorome
-        driver = webdriver.Chrome(options=chorome_option)
+        driver = webdriver.Chrome(options=chrome_options)
         wait = WebDriverWait(driver, 15)#define 15s para a pagina carregar toda
 
-        print("google page open")
+        print("google page open on headless")
 
         #salvar o link the todos os assets 
         link_assets=[]
