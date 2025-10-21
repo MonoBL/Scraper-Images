@@ -9,7 +9,7 @@ from selenium.webdriver.chrome.service import Service
 from selenium.common.exceptions import TimeoutException
 import shutil
 
-def run_scraper(base_url, nmr_pagina):
+def run_scraper(base_url, nmr_pagina, job_state):
         
     """
     #Url fornecido pelo o User
@@ -25,12 +25,6 @@ def run_scraper(base_url, nmr_pagina):
     # --- definir aqui quantos assets queremos recolher para teste
     # defina um inteiro (ex: 3) para testar só os primeiros N assets, ou None para todos
     max_asset = 2
-
-    
-
-    """#main domain
-    main_domain="https://www.vecteezy.com"""
-
 
     os.makedirs(download_path, exist_ok=True)
     print(f"Folder {download_path} created")
@@ -66,6 +60,8 @@ def run_scraper(base_url, nmr_pagina):
         wait = WebDriverWait(driver, 45)#define 15s para a pagina carregar toda
 
         print("google page open on headless")
+        #criar o primeiro state
+        job_state['status'] = 'finding_links'
 
         #salvar o link the todos os assets 
         link_assets=[]
@@ -105,6 +101,7 @@ def run_scraper(base_url, nmr_pagina):
             
         print(f"\nFind {len(link_assets)} link assets for donwload.")
 
+
         # aplicar limite simples (se definido) — corta a lista para os primeiros N
         if max_asset is not None:
             try:
@@ -115,22 +112,15 @@ def run_scraper(base_url, nmr_pagina):
             except Exception:
                 pass
 
+       #atualizar o state com o numero max assets encontrados 
+        total_assets= len(link_assets)
+        job_state['status']= 'downloading'
+        job_state['progress']= f'0/{link_assets}'
+
         print("\n---starting downloads---")
         #criação def reutilizaveis em vez de um loop para procurar e esperar downloads
 
         #função que espera que o donwload termina vendo se a pasta recebeu o ficheiro 
-        """def wait_downlads(folder,timeout=120):
-            waited=0 #variavel com valor de 0
-            sleep_interval=1
-            while waited<timeout: #loop roda enquando o waited nao bater 120 ou or o download for feito
-                if any(f.endswith('.crdownload') or f.endswith('.part') for f in os.listdir(folder)): #any pergunta se tem algum desses ficheiro da pasta retorna T or F
-                    #se returnar true adiciona 1 ao waited 
-                    time.sleep(sleep_interval)
-                    waited+=sleep_interval
-                else: #se o any responder false returna um true significa que o download terminou
-                    return True
-            return False #chega aqui pq o waited chegou aos 120s
-        """    
 
         def wait_downlads(folder, timeout=120):
             """Aguarda até não haver arquivos temporários (.crdownload, .part) na pasta ou até timeout."""
@@ -252,6 +242,9 @@ def run_scraper(base_url, nmr_pagina):
         for i, assets_link in enumerate(link_assets): #loop para cada link recolhido e da duas variaveis sendo i o numero de cada um e o asset o url 
             print(f"\nProcessing assets {i+1}/{len(link_assets)}: {assets_link}")
 
+            #atualizar o progress a cada loop ou seja depois de cada asset
+            job_state['progress']= f'{i+1}/{total_assets}'
+
             try:
                 driver.get(assets_link)
                 #1 clicar no botão principal
@@ -333,6 +326,12 @@ def run_scraper(base_url, nmr_pagina):
 
     except Exception as e:
         print(f"Error durring scrap {e}")
+        #atualizar o state se tiver algum erro
+        job_state['status']='error'
+        job_state['error']= str(e)
+        if driver:
+            driver.quit()
+        return#acaba mais cedo
 
     finally:
         #vai executar mesmo que erro
@@ -342,8 +341,9 @@ def run_scraper(base_url, nmr_pagina):
 
     print("Zipping the files")
     shutil.make_archive(f"{download_path}", 'zip', download_path)
-    zip_paht= f"{download_path}.zip"
-    print(f"Zip file creates: {zip_paht}")
+    zip_path= f"{download_path}.zip"
+    print(f"Zip file creates: {zip_path}")
 
-
-    return f"{download_path}.zip"
+    #atualizar o state final jontamente com o zip path 
+    job_state['status']='compleate'
+    job_state['zip_path']= zip_path

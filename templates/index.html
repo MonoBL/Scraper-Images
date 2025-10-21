@@ -97,28 +97,172 @@
         .submit-btn:hover {
             background-color: #2563EB; /* Um azul um pouco mais escuro */
         }
+        
+        /* --- NOVOS ESTILOS PARA A BARRA DE PROGRESSO --- */
+        #progress-container {
+            display: none; /* Começa escondido */
+            text-align: center;
+        }
+
+        #progress-text {
+            font-size: 1.2rem;
+            font-weight: 500;
+            margin-bottom: 1rem;
+            color: #E5E7EB;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 10px;
+            background-color: #374151;
+            border-radius: 5px;
+            overflow: hidden;
+        }
+        
+        /* Esta é uma barra de progresso "indeterminada" que fica a animar */
+        .progress-bar::before {
+            content: '';
+            display: block;
+            width: 40%;
+            height: 100%;
+            background-color: #3B82F6;
+            border-radius: 5px;
+            animation: loading-animation 1.5s infinite ease-in-out;
+        }
+
+        @keyframes loading-animation {
+            0% { transform: translateX(-100%); }
+            50% { transform: translateX(250%); }
+            100% { transform: translateX(-100%); }
+        }
+
     </style>
 </head>
 <body>
 
     <div class="scraper-container">
-        <h1 class="title">Image Scraper</h1>
-        <form action="/scrape" method="post">
-            
-            <div class="form-group">
-                <label for="base_url">Base URL</label>
-                <input type="text" id="base_url" name="base_url" placeholder="https://www.vecteezy.com/..." required>
-            </div>
-            
-            <div class="form-group">
-                <label for="nmr_pagina">Number of pages to scan</label>
-                <input type="number" id="nmr_pagina" name="nmr_pagina" min="1" value="1" required>
-            </div>
-            
-            <button type="submit" class="submit-btn">Start Scraper & Download</button>
+        
+        <div id="form-container">
+            <h1 class="title">Image Scraper</h1>
+            <form id="scrape-form">
+                
+                <div class="form-group">
+                    <label for="base_url">Base URL</label>
+                    <input type="text" id="base_url" name="base_url" placeholder="https://www.vecteezy.com/..." required>
+                </div>
+                
+                <div class="form-group">
+                    <label for="nmr_pagina">Number of pages to scan</label>
+                    <input type="number" id="nmr_pagina" name="nmr_pagina" min="1" value="1" required>
+                </div>
+                
+                <button type="submit" class="submit-btn">Start Scraper & Download</button>
 
-        </form>
+            </form>
+        </div>
+
+        <div id="progress-container">
+            <h1 class="title">Scraping in Progress...</h1>
+            <div id="progress-text">Starting job...</div>
+            <div class="progress-bar"></div>
+            <p style="margin-top: 1rem; color: #9CA3AF;">Please keep this tab open. Your download will start automatically.</p>
+        </div>
+
     </div>
+
+    <script>
+        // Seleciona os elementos
+        const form = document.getElementById('scrape-form');
+        const formContainer = document.getElementById('form-container');
+        const progressContainer = document.getElementById('progress-container');
+        const progressText = document.getElementById('progress-text');
+        
+        let pollingInterval; // Variável para guardar o nosso loop de polling
+
+        // Ouve o evento de 'submit' do formulário
+        form.addEventListener('submit', async function (event) {
+            event.preventDefault(); // Impede o envio normal do formulário
+
+            // Esconde o formulário e mostra o progresso
+            formContainer.style.display = 'none';
+            progressContainer.style.display = 'block';
+
+            try {
+                // Envia o pedido para /scrape
+                const response = await fetch('/scrape', {
+                    method: 'POST',
+                    body: new FormData(form)
+                });
+
+                if (!response.ok) {
+                    throw new Error('Failed to start scrape job.');
+                }
+
+                const data = await response.json();
+                
+                if (data.status === 'started' && data.job_id) {
+                    // Começa a perguntar pelo progresso
+                    startPolling(data.job_id);
+                } else {
+                    throw new Error('Invalid response from server.');
+                }
+
+            } catch (error) {
+                progressText.innerText = `Error: ${error.message}`;
+                // Poderíamos adicionar um botão para "Tentar Novamente" aqui
+            }
+        });
+
+        // Função que pergunta ao servidor pelo estado
+        function startPolling(jobId) {
+            pollingInterval = setInterval(async () => {
+                try {
+                    const response = await fetch(`/progress/${jobId}`);
+                    if (!response.ok) {
+                        throw new Error('Server error checking progress.');
+                    }
+                    
+                    const data = await response.json();
+
+                    // Atualiza o texto de progresso
+                    switch (data.status) {
+                        case 'starting':
+                            progressText.innerText = 'Job is starting...';
+                            break;
+                        case 'finding_links':
+                            progressText.innerText = 'Scanning pages for links...';
+                            break;
+                        case 'downloading':
+                            // Esta é a parte que você queria: "1/3", "2/3"
+                            progressText.innerText = `Downloading assets: ${data.progress}`;
+                            break;
+                        case 'complete':
+                            progressText.innerText = 'Scrape complete! Preparing download...';
+                            clearInterval(pollingInterval); // Para o loop
+                            window.location.href = `/download/${jobId}`; // Inicia o download
+                            // Opcionalmente, pode-se voltar a mostrar o formulário após X segundos
+                            setTimeout(() => {
+                                formContainer.style.display = 'block';
+                                progressContainer.style.display = 'none';
+                                progressText.innerText = 'Starting job...';
+                            }, 5000); // 5 segundos
+                            break;
+                        case 'error':
+                            throw new Error(data.error || 'An unknown error occurred.');
+                        case 'not_found':
+                             throw new Error('Job ID not found. Please try again.');
+                    }
+
+                } catch (error) {
+                    clearInterval(pollingInterval); // Para o loop em caso de erro
+                    progressText.innerText = `Error: ${error.message}`;
+                    formContainer.style.display = 'block'; // Mostra o formulário novamente
+                    progressContainer.style.display = 'none';
+                }
+            }, 2000); // Pergunta a cada 2 segundos
+        }
+
+    </script>
 
 </body>
 </html>
