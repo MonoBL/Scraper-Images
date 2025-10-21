@@ -345,5 +345,6 @@ def run_scraper(base_url, nmr_pagina, job_state):
     print(f"Zip file creates: {zip_path}")
 
     #atualizar o state final jontamente com o zip path 
-    job_state['status']='compleate'
+    job_state['status']='complete'
     job_state['zip_path']= zip_path
+    print(f"Job State: {job_state}")

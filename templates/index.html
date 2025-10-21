@@ -135,7 +135,6 @@
             50% { transform: translateX(250%); }
             100% { transform: translateX(-100%); }
         }
-
     </style>
 </head>
 <body>
@@ -209,7 +208,6 @@
 
             } catch (error) {
                 progressText.innerText = `Error: ${error.message}`;
-                // Poderíamos adicionar um botão para "Tentar Novamente" aqui
             }
         });
 
@@ -217,7 +215,10 @@
         function startPolling(jobId) {
             pollingInterval = setInterval(async () => {
                 try {
-                    const response = await fetch(`/progress/${jobId}`);
+                    // --- ESTA É A LINHA MODIFICADA ---
+                    const response = await fetch(`/progress/${jobId}?_=${new Date().getTime()}`);
+                    // --- FIM DA MODIFICAÇÃO ---
+
                     if (!response.ok) {
                         throw new Error('Server error checking progress.');
                     }
@@ -233,20 +234,15 @@
                             progressText.innerText = 'Scanning pages for links...';
                             break;
                         case 'downloading':
-                            // Esta é a parte que você queria: "1/3", "2/3"
                             progressText.innerText = `Downloading assets: ${data.progress}`;
                             break;
+                        
                         case 'complete':
                             progressText.innerText = 'Scrape complete! Preparing download...';
                             clearInterval(pollingInterval); // Para o loop
                             window.location.href = `/download/${jobId}`; // Inicia o download
-                            // Opcionalmente, pode-se voltar a mostrar o formulário após X segundos
-                            setTimeout(() => {
-                                formContainer.style.display = 'block';
-                                progressContainer.style.display = 'none';
-                                progressText.innerText = 'Starting job...';
-                            }, 5000); // 5 segundos
                             break;
+
                         case 'error':
                             throw new Error(data.error || 'An unknown error occurred.');
                         case 'not_found':

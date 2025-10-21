@@ -47,7 +47,13 @@ def get_progress(job_id):
     if not job:
         return jsonify({'status': 'not_found'}), 404
     
-    return jsonify(job)
+   
+    response = jsonify(job)
+    response.headers['Cache-Control'] = 'no-store, no-cache, must-revalidate, max-age=0'
+    response.headers['Pragma'] = 'no-cache'
+    response.headers['Expires'] = '0'
+
+    return response
 
 @app.route('/download/<job_id>')
 def donwload_file(job_id):
@@ -64,10 +70,12 @@ def donwload_file(job_id):
         return jsonify({'status':'processing', 'message': 'job still running or path not found'}), 422
     
     zip_path =job['zip_path']
-    donwload_folder = zip_path.replace['.zip', '']
+    donwload_folder = zip_path.replace('.zip', '')
+
+    #variavel com resposta
+    response= send_file(zip_path, as_attachment=True, download_name=f"vecteezy_assets_{job_id[:8]}.zip")
 
     #função para apagar arquivos downlaod 
-    @after_this_request
     def clean(response):
         try:
             #remover o ZIP
@@ -88,10 +96,13 @@ def donwload_file(job_id):
         except Exception as e:
             print(f"Err: {e}")
 
-        return response
+    #a função so é chamada quando a ligação fechar
+    response.call_on_close(clean)
+
+    return response
     
-    #enviar o zip para download
-    return send_file(zip_path, as_attachment=True, download_name=f"vecteezy_assets_{job_id[:8]}.zip")
+    
+    
 
 if __name__ == '__main__':
     app.run(debug=True, host='0.0.0.0')
