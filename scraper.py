@@ -24,7 +24,7 @@ def run_scraper(base_url, nmr_pagina, job_state):
 
     # --- definir aqui quantos assets queremos recolher para teste
     # defina um inteiro (ex: 3) para testar só os primeiros N assets, ou None para todos
-    max_asset = 2
+    max_asset = 3
 
     os.makedirs(download_path, exist_ok=True)
     print(f"Folder {download_path} created")
