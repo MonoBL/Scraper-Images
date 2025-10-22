@@ -135,106 +135,64 @@ def run_scraper(base_url, nmr_pagina, job_state):
                     return True
             return False
 
-        def find_download(driver, wait, timeout=8):
-            """Tenta localizar o link/elemento final que dispara o download.
+        def downloaded(driver, wait):
+            #otimização vai dereto para os botoes de tamanho 
+            #FLUXO:
+            #1. Procura botões de tamanho (size buttons)
+            #2. Clica no primeiro
+            #3. Procura botão de download final
+            #4. Clica e inicia download
+            try: 
+                #procurar botoes de tamanho
+                print("Search for size buttons")
 
-            Retorna uma tuple (type, value):
-            - ('href', href) se encontrou um link direto
-            - ('element', WebElement) se encontrou um elemento clicável
-            - (None, None) se não encontrou
-            """
-            end_time = time.time() + timeout
+                #Espera 5s para os botoes aparecerem
+                size_buttons = WebDriverWait(driver, 5).until(
+                    EC.presence_of_all_elements_located((By.CSS_SELECTOR, 'button.download-button__size-option')))
+                
+                if size_buttons:
+                    print(f"Buttons find: {len(size_buttons)}")
 
-            # 1) procurar links com classe óbvia
-            try:
-                a = WebDriverWait(driver, 2).until(EC.presence_of_element_located((By.XPATH, "//a[contains(@class, 'download-button') or contains(@class,'download')]")))
-                href = a.get_attribute('href')
-                if href:
-                    print(f"Encontrado download link (class): {href}")
-                    return ('href', href)
-                return ('element', a)
-            except Exception:
-                pass
+                    #clicar no primerio botão
+                    try:
+                        driver.execute_script("arguments[0].scrollIntoView(true)", size_buttons[0])
+                        time.sleep[0.5]
+                        driver.execute_script("arugments[0].click();", size_buttons[0])
+                        print("clicked")
+                        time.sleep(2) #Esperar abrir
+                    except Exception as e:
+                        print(f"Fail to click : {e}")
+                    
+                    try:
+                        #prcurar botao com texto de download ou baixar
+                        xpath_download="//button[contains(translate(normalize-space(.), 'ABCDEFGHIJKLMNOPQRSTUVWXYZ', 'abcdefghijklmnopqrstuvwxyz'), 'download') or contains(translate(normalize-space(.), 'ABCDEFGHIJKLMNOPQRSTUVWXYZ', 'abcdefghijklmnopqrstuvwxyz'), 'baixar')]"
+                        
+                        btn_download=WebDriverWait(driver, 5).until(EC.presence_of_all_elements_located((By.XPATH, xpath_download)))
+                        
+                        if btn_download:
+                            print("btn found")
 
-            # 2) procurar anchors com atributo download
-            try:
-                anchors = driver.find_elements(By.CSS_SELECTOR, 'a[download]')
-                for an in anchors:
-                    href = an.get_attribute('href')
-                    if href:
-                        print(f"Encontrado download link (a[download]): {href}")
-                        return ('href', href)
-                    return ('element', an)
-            except Exception:
-                pass
-
-            # 3) procurar qualquer anchor cujo href contenha 'download' ou termine com extensão de arquivo comum
-            try:
-                anchors = driver.find_elements(By.TAG_NAME, 'a')
-                for an in anchors:
-                    href = an.get_attribute('href')
-                    if not href:
-                        continue
-                    href_low = href.lower()
-                    if 'download' in href_low or href_low.endswith(('.zip', '.jpg', '.jpeg', '.png', '.gif', '.svg')) or 'cdn' in href_low:
-                        print(f"Encontrado download link (heurística href): {href}")
-                        return ('href', href)
-            except Exception:
-                pass
-
-            # 4) procurar botões com texto que contenha 'download' ou 'baixar'
-            try:
-                xpath_txt = "//button[contains(translate(normalize-space(.), 'ABCDEFGHIJKLMNOPQRSTUVWXYZ', 'abcdefghijklmnopqrstuvwxyz'), 'download') or contains(translate(normalize-space(.), 'ABCDEFGHIJKLMNOPQRSTUVWXYZ', 'abcdefghijklmnopqrstuvwxyz'), 'baixar') or contains(translate(normalize-space(.), 'ABCDEFGHIJKLMNOPQRSTUVWXYZ', 'abcdefghijklmnopqrstuvwxyz'), 'free download')]"
-                btn = driver.find_element(By.XPATH, xpath_txt)
-                if btn:
-                    print("Encontrado botão com texto 'download'/'baixar'")
-                    return ('element', btn)
-            except Exception:
-                pass
-
-            # 5) procurar elementos com atributos data-download
-            try:
-                el = driver.find_element(By.XPATH, "//*[@data-download or contains(@class,'download') or @aria-label='Download']")
-                if el:
-                    href = el.get_attribute('href')
-                    if href:
-                        print(f"Encontrado download via atributo: {href}")
-                        return ('href', href)
-                    return ('element', el)
-            except Exception:
-                pass
-
-            # 6) esperar um pouco e retornar None
-            time.sleep(0.5)
-            return (None, None)
-
-        def perfomance_url(driver):
-            #retorna todos os url encontranos na window.performance.getEntries() com extensões comuns
-            try:
-                script='''
-                const exts = ['.zip','.jpg','.jpeg','.png','.gif','.svg','.webp'];
-                const entries = performance.getEntries() || [];
-                return entries.map(e => e.name).filter(n => n && exts.some(ext => n.toLowerCase().includes(ext)));
-                '''
-                result=driver.execute_script(script)
-                if result:
-                    return list(result)
-            except Exception:
-                pass
-            return[]
-
-
-        #verifica se contem algum link de anuncio
-        def is_add(url):
-            if not url: 
-                return False #se tiver vazio nao é um anuncio 
-            ad_signals= ['shutterstock', 'sa7eer', 'doubleclick', 'googlesyndication'] #lista de palavras que contem add
-            low = url.lower()
-            for s in ad_signals:
-                if s in low:
-                    return True
-            return False
-            #pergunta se tem algumas das palavras dentro do url retunr true or false 
+                            #clicar no butao
+                            try:
+                                driver.execute_script("arguments[0].scrollIntoView(true):", btn_download)
+                                time.sleep(0.3)
+                                driver.execute_script("arguments[0].click();", btn_download)
+                                print("Clicked on btn")
+                                return True
+                            except Exception as e:
+                                print(f"Failled to click, Err: {e}")
+                                return False
+                    except Exception as e:
+                            print(f"No Button find: {e}")
+                            return False
+                
+                else:
+                    print("No size button found ")
+                    return False
+                
+            except Exception as e:
+                print("Error in optimized download")
+                return False
 
 
         print("\n---starting downaloads---")
@@ -246,84 +204,28 @@ def run_scraper(base_url, nmr_pagina, job_state):
             job_state['progress']= f'{i+1}/{total_assets}'
 
             try:
+                #go to the page asset
                 driver.get(assets_link)
-                #1 clicar no botão principal
-                try:
-                    botao_principal= wait.until(EC.element_to_be_clickable((By.CSS_SELECTOR, "button.ez-btn--primary[data-download-target='mainButton']")))
-                    driver.execute_script("arguments[0].scrollIntoView(true);", botao_principal)
-                    time.sleep(0.5)
-                    driver.execute_script("arguments[0].click();", botao_principal)
-                except Exception:
-                    print("Main button not found, fiding another one")
+                time.sleep(2) #load page
 
-                #2 vai procurar o link ou o botao de download
-                try:
-                    #se a pagina tiver opção de tamanho pode levar ao botão de download
-                    try:
-                        size_buttons = driver.find_elements(By.CSS_SELECTOR, 'button.download-button__size-option')
-                        if size_buttons:
-                            print(f"Encontradas {len(size_buttons)} opções de tamanho, clicando na primeira...")
-                            try:
-                                driver.execute_script("arguments[0].scrollIntoView(true); arguments[0].click();", size_buttons[0])
-                                time.sleep(3)
-                            except Exception as e:
-                                print(f"Falha ao clicar na opção de tamanho: {e}")
-                    except Exception:
-                        pass
+                success= downloaded
 
-                    #Usar as funcções para encontrar algum link para download 
-                    target_type, target= find_download(driver, wait, timeout=8)
-                    if target_type== 'href' and target:
-                        if is_add(target):
-                            print(f"Href detect as add ignoring: {target}")
-                        else:
-                            print(f"downloading by href: {target}")
-                            driver.get(target)
-                    elif target_type == 'element' and target:
-                        try:
-                            wait.until(EC.element_to_be_clickable((By.XPATH, ".")))
-                        except Exception: 
-                            pass
-                        try: 
-                            #encontra elemento e clicka
-                            driver.execute_script("arguments[0].scrollIntoView(true);", target)
-                            time.sleep(0.3)
-                            driver.execute_script("arguments[0].click();", target)
-                            print("Clicado no elemento de download final")
-                        except Exception as e:
-                            print(f"FAil err: {e}")
+                if success:
+                    print("Donwload initiated ")
+
+                    print("Wainting download")
+                    if wait_downlads(download_path, timeout=60):
+                        print(f"Donwload done")
                     else:
-                        #def de performance para encontrar um link direto
-                        perf_url= perfomance_url(driver)
-                        if perf_url:
-                            print("Resource find to download:")
-                            chosen= None
-                            for u in perf_url:
-                                print(" - ", u)
-                                if not is_add(u):
-                                    chosen=u
-                                    break
-                            if chosen:
-                                print(f"Going to recourse: {chosen}")
-                                driver.get(chosen)
-                            else:
-                                print("All recouse are add/tracker")
-                        else:
-                            print("No link find")
-                except Exception as e:
-                    print(f"Error locating links to downalod\n Err: {e}")
-                
-                print("waiting downloads on folder")
-                if wait_downlads(download_path, timeout=60):
-                    print(f"Download end {download_path}")
+                        print("Download timeout (may still be downloading)")
                 else:
-                    print("Waiting download")
-
+                    print("Download failed to start")
             except Exception as e:
-                print(f"Err processing {assets_link}\n Err: {e}")
+                print(f"Error on assets: {e}")
             
-            time.sleep(4)
-
+            #pausa entre assets
+            time.sleep(3)
+            
     except Exception as e:
         print(f"Error durring scrap {e}")
         #atualizar o state se tiver algum erro
@@ -339,6 +241,7 @@ def run_scraper(base_url, nmr_pagina, job_state):
             print("Clossing")
             driver.quit()
 
+    #zip the files
     print("Zipping the files")
     shutil.make_archive(f"{download_path}", 'zip', download_path)
     zip_path= f"{download_path}.zip"
@@ -347,4 +250,5 @@ def run_scraper(base_url, nmr_pagina, job_state):
     #atualizar o state final jontamente com o zip path 
     job_state['status']='complete'
     job_state['zip_path']= zip_path
+    print("Job done")
     print(f"Job State: {job_state}")
