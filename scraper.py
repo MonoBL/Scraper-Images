@@ -42,9 +42,9 @@ def run_scraper(base_url, nmr_pagina, job_state):
     }
 
     chrome_options.add_experimental_option("prefs",prefs)
-    chrome_options.add_argument("--headless=new")
+    #chrome_options.add_argument("--headless=new")
     chrome_options.add_argument("--no-sandbox")
-    chrome_options.add_argument("--disable-gpu")
+    #chrome_options.add_argument("--disable-gpu")
     chrome_options.add_argument("--window-size=1920,1080")
     chrome_options.add_argument("--disable-blink-features=AutomationControlled")
     chrome_options.add_argument("--user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36")  # ← NOVO: User agent
@@ -135,7 +135,7 @@ def run_scraper(base_url, nmr_pagina, job_state):
                     return True
             return False
 
-        def downloaded(driver, wait):
+        def opt_download(driver, wait):
             #otimização vai dereto para os botoes de tamanho 
             #FLUXO:
             #1. Procura botões de tamanho (size buttons)
@@ -148,16 +148,18 @@ def run_scraper(base_url, nmr_pagina, job_state):
 
                 #Espera 5s para os botoes aparecerem
                 size_buttons = WebDriverWait(driver, 5).until(
-                    EC.presence_of_all_elements_located((By.CSS_SELECTOR, 'button.download-button__size-option')))
+                    EC.presence_of_all_elements_located((By.CSS_SELECTOR, 'button.download-button__size-option'))
+                )
                 
                 if size_buttons:
+
                     print(f"Buttons find: {len(size_buttons)}")
 
                     #clicar no primerio botão
                     try:
-                        driver.execute_script("arguments[0].scrollIntoView(true)", size_buttons[0])
-                        time.sleep[0.5]
-                        driver.execute_script("arugments[0].click();", size_buttons[0])
+                        driver.execute_script("arguments[0].scrollIntoView(true);", size_buttons[0])
+                        time.sleep(0.5)
+                        driver.execute_script("arguments[0].click();", size_buttons[0])
                         print("clicked")
                         time.sleep(2) #Esperar abrir
                     except Exception as e:
@@ -167,24 +169,27 @@ def run_scraper(base_url, nmr_pagina, job_state):
                         #prcurar botao com texto de download ou baixar
                         xpath_download="//button[contains(translate(normalize-space(.), 'ABCDEFGHIJKLMNOPQRSTUVWXYZ', 'abcdefghijklmnopqrstuvwxyz'), 'download') or contains(translate(normalize-space(.), 'ABCDEFGHIJKLMNOPQRSTUVWXYZ', 'abcdefghijklmnopqrstuvwxyz'), 'baixar')]"
                         
-                        btn_download=WebDriverWait(driver, 5).until(EC.presence_of_all_elements_located((By.XPATH, xpath_download)))
+                        btn_download=WebDriverWait(driver, 5).until(
+                            EC.presence_of_element_located((By.XPATH, xpath_download)))
                         
                         if btn_download:
                             print("btn found")
 
                             #clicar no butao
                             try:
-                                driver.execute_script("arguments[0].scrollIntoView(true):", btn_download)
+                                driver.execute_script("arguments[0].scrollIntoView(true);", btn_download)
                                 time.sleep(0.3)
                                 driver.execute_script("arguments[0].click();", btn_download)
                                 print("Clicked on btn")
+                                time.sleep(2)
                                 return True
                             except Exception as e:
                                 print(f"Failled to click, Err: {e}")
                                 return False
+                            
                     except Exception as e:
-                            print(f"No Button find: {e}")
-                            return False
+                        print(f"No Button find: {e}")
+                        return False
                 
                 else:
                     print("No size button found ")
@@ -208,7 +213,7 @@ def run_scraper(base_url, nmr_pagina, job_state):
                 driver.get(assets_link)
                 time.sleep(2) #load page
 
-                success= downloaded
+                success= opt_download(driver, wait)
 
                 if success:
                     print("Donwload initiated ")
