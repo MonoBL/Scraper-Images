@@ -24,40 +24,60 @@ def run_scraper(base_url, nmr_pagina, job_state):
 
     # --- definir aqui quantos assets queremos recolher para teste
     # defina um inteiro (ex: 3) para testar só os primeiros N assets, ou None para todos
-    max_asset = 3
+    max_asset = None
 
     os.makedirs(download_path, exist_ok=True)
     print(f"Folder {download_path} created")
 
-    #cria um objeto para as prefs que queremos 
-    chrome_options= Options()
-    #defenilas 
-    prefs={
-        "download.default_directory": download_path, #usar a folder como default
-        "download.prompt_for_download":False, #evita a pergunta onde fazer download
-        "download.directory_upgrade":True, #permite download para directorio diretamente
-        "safebrowsing.enabled":True, #mantem seguro
-        "safebrowsing.disable_download_protection":True,#desativa a proteção de download
-        "profile.default_content_setting_values.cookies": 1 #aceita cookies mesmo que o o pop up contiue a aparecer
-    }
+    #Restar a cada 3 download defenir variaveis 
+    donwload_before=3 # max download antes de reiniciar
+    donwload_count=0 #Contar donwload desde o ultimo restart
 
-    chrome_options.add_experimental_option("prefs",prefs)
-    chrome_options.add_argument("--headless=new")
-    chrome_options.add_argument("--no-sandbox")
-    chrome_options.add_argument("--disable-gpu")
-    chrome_options.add_argument("--window-size=1920,1080")
-    chrome_options.add_argument("--disable-blink-features=AutomationControlled")
-    chrome_options.add_argument("--user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36")  # ← NOVO: User agent
+    #criar uma função para chrome option para abrir cada vez que reiniciarmos
+    def create_options(download_path):
+        #cri um objeto para as prefs que queremos
+        chrome_options= Options()
+        #defenilas 
+        prefs={
+            "download.default_directory": download_path, #usar a folder como default
+            "download.prompt_for_download":False, #evita a pergunta onde fazer download
+            "download.directory_upgrade":True, #permite download para directorio diretamente
+            "safebrowsing.enabled":True, #mantem seguro
+            "safebrowsing.disable_download_protection":True,#desativa a proteção de download
+            "profile.default_content_setting_values.cookies": 1 #aceita cookies mesmo que o o pop up contiue a aparecer
+        }
+
+        chrome_options.add_experimental_option("prefs",prefs)
+        chrome_options.add_argument("--headless=new")
+        chrome_options.add_argument("--no-sandbox")
+        chrome_options.add_argument("--disable-gpu")
+        chrome_options.add_argument("--window-size=1920,1080")
+        chrome_options.add_argument("--disable-blink-features=AutomationControlled")
+        chrome_options.add_argument("--user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36")  # ← NOVO: User agent
 
 
-    #cria pasta para donwload usar o OS para criar e prcourar paasta
+        #cria pasta para donwload usar o OS para criar e prcourar paasta
+        
+        return chrome_options
     
-    driver = None #start diver como None 
+    #função para start/reiniciar driver
+    def start_driver(download_path):
+        #cria um novo driver com as configs sera chamada cada vez que inciar e fechar
+        print("Starting new Chrome instance...")
+        #start selenium drivers para abrir uma pagina no chorome
+        options=create_options(download_path)
+        new_driver = webdriver.Chrome(options=options)
+        new_wait = WebDriverWait(new_driver, 45)#define 15s para a pagina carregar toda
+        print("Started Success")
+        return new_driver, new_wait
+    
+    driver= None
+    wait=None
 
     try:
-        #start selenium drivers para abrir uma pagina no chorome
-        driver = webdriver.Chrome(options=chrome_options)
-        wait = WebDriverWait(driver, 45)#define 15s para a pagina carregar toda
+
+        #iniciar os drivers
+        driver, wait= start_driver(download_path)
 
         print("google page open on headless")
         #criar o primeiro state
@@ -181,7 +201,7 @@ def run_scraper(base_url, nmr_pagina, job_state):
                                 time.sleep(0.3)
                                 driver.execute_script("arguments[0].click();", btn_download)
                                 print("Clicked on btn")
-                                time.sleep(2)
+                                time.sleep(3)
                                 return True
                             except Exception as e:
                                 print(f"Failled to click, Err: {e}")
@@ -204,9 +224,28 @@ def run_scraper(base_url, nmr_pagina, job_state):
 
         for i, assets_link in enumerate(link_assets): #loop para cada link recolhido e da duas variaveis sendo i o numero de cada um e o asset o url 
             print(f"\nProcessing assets {i+1}/{len(link_assets)}: {assets_link}")
+            print(f"Download since last restart: {donwload_count}/{donwload_before}")
 
             #atualizar o progress a cada loop ou seja depois de cada asset
             job_state['progress']= f'{i+1}/{total_assets}'
+
+            #verificar se precisa reinciar o driver 
+            if donwload_count >= donwload_before:
+                print(f"reached {donwload_before} limit")
+                print(f"restarting chrome to reset limit")
+                
+                if driver:
+                    driver.quit
+                    print("Old instance closed")
+                
+                time.sleep(2)
+                
+                #criar novo driver
+                driver, wait= start_driver(download_path)
+
+                #reset contador
+                donwload_count= 0
+                print("Counter reset")
 
             try:
                 #go to the page asset
@@ -221,6 +260,8 @@ def run_scraper(base_url, nmr_pagina, job_state):
                     print("Wainting download")
                     if wait_downlads(download_path, timeout=60):
                         print(f"Donwload done")
+                        donwload_count+=1
+                        print(f"Counter udpated: {donwload_count}")
                     else:
                         print("Download timeout (may still be downloading)")
                 else:
